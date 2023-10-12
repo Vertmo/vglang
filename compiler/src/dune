@@ -1,0 +1,8 @@
+(executable
+ (preprocess (pps ppx_deriving.show))
+ (name vglangc))
+
+(menhir
+ (modules parser))
+
+(ocamllex lexer)

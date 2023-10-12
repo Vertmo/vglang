@@ -1,0 +1,2 @@
+component move
+  fun move() : unit

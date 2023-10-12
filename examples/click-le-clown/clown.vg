@@ -1,0 +1,16 @@
+entity clown(max_x, max_y : int)
+  var x : int
+  var y : int
+  var dx : int
+  var dy : int
+
+  component move
+    let move() =
+        x += dx;
+        y += dy;
+        if(x <= 0 || x >= max_x || y <= 0 || y > max_y) {
+              dx -= 1;
+              dy -= 1;
+        }
+
+  component click

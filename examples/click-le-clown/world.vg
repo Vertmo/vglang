@@ -1,0 +1,4 @@
+system world:
+    trigger periodic 10: {
+        call move.move()
+    }
