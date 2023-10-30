@@ -1,0 +1,1 @@
+VGLANGC = $(ROOT_DIR)/compiler/_build/default/src/vglangc.exe

@@ -19,6 +19,7 @@ type exp = {
   e_loc  : location;
 }
 and exp_desc =
+  | ConstInt of int
   | Var of ident
 [@@deriving show]
 
@@ -26,12 +27,14 @@ type stmt = {
   st_desc : stmt_desc;
   st_loc  : location
 }
+
 and stmt_desc =
   | Equation of ident * exp
-  | Call of ident * ident * exp list
+  | Call of ident list * ident * ident * exp list
+  | Foreach of ident * ident * block
 [@@deriving show]
 
-type block = {
+and block = {
   blk_stmts : stmt list;
   blk_loc : location
 }
@@ -55,6 +58,7 @@ type fundecl = {
 } [@@deriving show]
 
 type component = {
+  c_name : ident;
   c_funs : fundecl list;
   c_loc  : location
 } [@@deriving show]

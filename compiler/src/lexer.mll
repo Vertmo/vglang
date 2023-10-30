@@ -32,9 +32,11 @@ rule token = parse
   | "}"              { RCURLY }
   | ":"              { COLON }
   | "."              { DOT }
-  | "call"           { CALL }
+  | "="              { EQ }
   | "component"      { COMPONENT }
+  | "foreach"        { FOREACH }
   | "fun"            { FUN }
+  | "int"            { INT }
   | "periodic"       { PERIODIC }
   | "trigger"        { TRIGGER }
   | "unit"           { UNIT }

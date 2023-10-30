@@ -12,8 +12,7 @@ let syntax_error loc =
 let parse filename =
   let (_ic, lexbuf) = lexbuf_from_file filename in
   try
-    let prog = Parser.file Lexer.token lexbuf in
-    print_endline (Langsyntax.show_file prog)
+    Parser.file Lexer.token lexbuf
   with
   | Lexer.Lexical_error(err, l) ->
     Lexer.lexical_error err l
@@ -22,9 +21,15 @@ let parse filename =
     and l_end   = Lexing.lexeme_end_p lexbuf in
     syntax_error { l_start; l_end }
 
+open GoblintCil
 
-let main filename =
-  parse filename
+let files = ref []
+
+let add_file filename =
+  files := (parse filename)::!files
 
 let _ =
-  Arg.parse [] main "usage: ./vglanc <files>"
+  Arg.parse [] add_file "usage: ./vglanc <files>";
+  let decls = List.concat_map Generator.from_file (List.rev !files) in
+  let cfile = Generator.mk_file "game" decls in
+  Cil.dumpFile Cil.defaultCilPrinter stdout "meh" cfile

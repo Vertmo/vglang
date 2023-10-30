@@ -1,4 +1,6 @@
 system world:
     trigger periodic 10: {
-        call move.move()
+        foreach m : move {
+            () = m.move()
+        }
     }

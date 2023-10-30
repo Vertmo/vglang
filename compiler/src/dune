@@ -1,4 +1,5 @@
 (executable
+ (libraries goblint-cil)
  (preprocess (pps ppx_deriving.show))
  (name vglangc))
 

@@ -12,9 +12,9 @@
 %token LCURLY RCURLY
 %token EQ
 %token DOT
-%token CALL
 %token COMPONENT
 %token ENTITY
+%token FOREACH
 %token FUN
 %token <string> IDENT
 %token INT
@@ -37,7 +37,7 @@ file:
 ;
 
 component: COMPONENT IDENT list(fundecl)
-    { { c_funs = $3; c_loc = mk_location $startpos $endpos } }
+    { { c_name = $2; c_funs = $3; c_loc = mk_location $startpos $endpos } }
 ;
 
 system:
@@ -56,13 +56,21 @@ fundecl: FUN IDENT LPAREN separated_list(COMMA, typ) RPAREN COLON typ
 
 exp:
 | IDENT { { e_desc = Var $1; e_loc = mk_location $startpos $endpos } }
+| NUMBER { { e_desc = ConstInt $1; e_loc = mk_location $startpos $endpos } }
+
+pat:
+| LPAREN separated_list(COMMA, IDENT) RPAREN
+  { $2 }
 
 stmt:
 | IDENT EQ exp
   { { st_desc = Equation ($1, $3);
       st_loc = mk_location $startpos $endpos } }
-| CALL IDENT DOT IDENT LPAREN separated_list(COMMA, exp) RPAREN
-  { { st_desc = Call ($2, $4, $6);
+| pat EQ IDENT DOT IDENT LPAREN separated_list(COMMA, exp) RPAREN
+  { { st_desc = Call ($1, $3, $5, $7);
+      st_loc = mk_location $startpos $endpos } }
+| FOREACH IDENT COLON IDENT block
+  { { st_desc = Foreach ($2, $4, $5);
       st_loc = mk_location $startpos $endpos } }
 
 stmts: separated_list(SEMICOLON, stmt)
