@@ -53,17 +53,46 @@ let from_typ = function
   | Int -> TInt (IInt, [])
   | Unit -> TVoid []
 
+let from_vardecls vds =
+  List.map (fun vd -> (vd.vd_name, from_typ vd.vd_ty, None, [], locUnknown)) vds
+
+let params_from_vardecls vds =
+  List.map (fun vd -> (vd.vd_name, from_typ vd.vd_ty, [])) vds
+
 (* Translate an expression *)
 
-let from_exp (e: Langsyntax.exp) =
+let from_unop (op: Langsyntax.unop) = match op with
+  | Minus -> Neg
+  | Not -> LNot
+
+let from_binop (op: Langsyntax.binop) = match op with
+  | Plus -> PlusA
+  | Minus -> MinusA
+  | Mult -> Mult
+  | Div -> Div
+  | And -> LAnd
+  | Or -> LOr
+  | Eq -> Eq
+  | Le -> Le
+  | Lt -> Lt
+  | Ge -> Ge
+  | Gt -> Gt
+
+let rec from_exp (e: Langsyntax.exp) =
   match e.e_desc with
   | ConstInt i -> Const (CInt (Z.of_int i, IInt, None))
   | Var x -> Lval (Var (Cil.makeGlobalVar x (TVoid [])), NoOffset)
+  | Last x -> Lval (Var (Cil.makeGlobalVar x (TVoid [])), NoOffset)
+  | BinOp (op, e1, e2) -> BinOp (from_binop op, from_exp e1, from_exp e2, TVoid [])
+  | UnOp (op, e1) -> UnOp (from_unop op, from_exp e1, TVoid [])
 
 (* Translate a statement *)
 
 let rec from_stmt (s: Langsyntax.stmt) =
   match s.st_desc with
+  | Equation (x, e) ->
+    let x = Cil.makeGlobalVar x (TVoid []) (* TODO *) in
+    [mkStmtOneInstr (Set ((Var x, NoOffset), from_exp e, locUnknown, locUnknown))]
   | Call ([], x, f, es) ->
     let x = Cil.makeGlobalVar x (TVoid []) (* TODO *) in
     let fty = TVoid [] in (* TODO *)
@@ -72,7 +101,8 @@ let rec from_stmt (s: Langsyntax.stmt) =
                           Lval (mk_field_ptr_access x f fty),
                           (Lval (mk_field_ptr_access x "$entity" dataty))::(List.map from_exp es),
                           locUnknown, locUnknown)])]
-  | Equation _ -> failwith "TODO from_stmt Equation"
+  | IfThenElse (e, blkt, blke) ->
+    [mkStmt (If (from_exp e, from_block blkt, from_block blke, locUnknown, locUnknown))]
   | Foreach (x, cclass, body) ->
     let iterty = TPtr (mk_struct_typ cclass, []) (* TODO *) in
     let clist = Cil.makeGlobalVar ("component$"^cclass^"$list") iterty in
@@ -113,13 +143,51 @@ let from_trigger (t: trigger) =
                 from_block t.tr_action,
                 mkBlock [], locUnknown, locUnknown))
 
+(* Translate an entity *)
+
+let from_component_impl e _sty (c: component_impl) =
+  List.map (fun f ->
+      GFun (mk_function (e.e_name^"$"^c.ci_name^"$"^f.f_name)
+              (params_from_vardecls f.f_ins)
+              (TVoid []) (* TODO return multiple values? *)
+              (from_block f.f_body) (* TODO return *),
+            locUnknown)) c.ci_funs
+
+let from_entity (e: entity) =
+  let params = from_vardecls e.e_params in
+  let sty = Cil.mkCompInfo true e.e_name
+               (fun _ -> params
+                  @List.map (fun vd -> (vd.vd_name, from_typ vd.vd_ty, None, [], locUnknown)) e.e_vars)
+               [] in
+  let initv = Cil.makeGlobalVar "$init" (TPtr (TComp (sty, []), [])) in
+  [ (* Structure *)
+    GCompTag (sty, locUnknown);
+    (* Constructor *)
+    GFun (mk_function (e.e_name^"$init")
+            (List.map (fun (x, ty, _, _, _) -> (x, ty, [])) params)
+            (TPtr (TComp (sty, []), []))
+            (mkBlock [mkStmt (Instr ([VarDecl (initv, locUnknown);
+                                      Call (Some (Var initv, NoOffset),
+                                            Lval ((Var (Cil.makeGlobalVar "malloc" (TVoid []))), NoOffset),
+                                            [SizeOf (TComp (sty, []))],
+                                            locUnknown, locUnknown)]@
+                                     (List.map (fun (x, ty, _, _, _) ->
+                                          Set (mk_field_ptr_access initv x ty,
+                                               Lval (Var (Cil.makeGlobalVar x ty), NoOffset),
+                                               locUnknown, locUnknown)) params)));
+                      (* TODO assign last values *)
+                      mkStmt (Return (Some (Lval (Var initv, NoOffset)), locUnknown))
+                     ]),
+          locUnknown)
+  ]@(List.concat_map (from_component_impl e sty) e.e_comps)
+
 (* Translate a component *)
 
 let from_component_fun (f: fundecl) =
   (f.fd_name,
    TPtr (TFun (from_typ f.fd_ty,
                Some (("$entity", TPtr (TVoid [], []), [])::
-                     List.mapi (fun i ty -> (Printf.sprintf "d$%d" i, from_typ ty, [])) f.fd_args),
+                     List.mapi (fun i { vd_ty; _ } -> (Printf.sprintf "d$%d" i, from_typ vd_ty, [])) f.fd_args),
                false, []), []),
    None, [], locUnknown)
 
@@ -135,8 +203,8 @@ let from_component (c: component) =
 
 (* Translate a system *)
 
-let init_system_name s = "system$"^s.s_name^"$init"
-let update_system_name s = "system$"^s.s_name^"$update"
+let init_system_name s = s.s_name^"$init"
+let update_system_name s = s.s_name^"$update"
 
 let init_from_system (s: system) =
   mk_function (init_system_name s) [] (TVoid []) (mkBlock [])
@@ -152,5 +220,6 @@ let from_system (s: system) =
 
 let from_file file =
   match file with
+  | Entity e -> from_entity e
   | Component c -> from_component c
   | System s -> from_system s

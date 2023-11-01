@@ -31,16 +31,34 @@ rule token = parse
   | "{"              { LCURLY }
   | "}"              { RCURLY }
   | ":"              { COLON }
+  | ";"              { SEMICOLON }
+  | ","              { COMMA }
   | "."              { DOT }
   | "="              { EQ }
+  | "+"              { PLUS }
+  | "-"              { MINUS }
+  | "*"              { STAR }
+  | "/"              { SLASH }
+  | "and"            { AND }
+  | "or"             { OR }
+  | ">="             { GE }
+  | ">"              { GT }
+  | "<="             { LE }
+  | "<"              { LT }
   | "component"      { COMPONENT }
+  | "else"           { ELSE }
+  | "entity"         { ENTITY }
   | "foreach"        { FOREACH }
   | "fun"            { FUN }
+  | "if"             { IF }
   | "int"            { INT }
+  | "last"           { LAST }
   | "periodic"       { PERIODIC }
+  | "then"           { THEN }
   | "trigger"        { TRIGGER }
   | "unit"           { UNIT }
   | "system"         { SYSTEM }
+  | "var"            { VAR }
   | eof              { EOF }
   | ['0'-'9']+
   | '0' ['x' 'X'] ['0'-'9' 'A'-'F' 'a'-'f']+

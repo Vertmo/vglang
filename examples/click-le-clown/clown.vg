@@ -1,16 +1,13 @@
 entity clown(max_x, max_y : int)
-  var x : int
-  var y : int
-  var dx : int
-  var dy : int
+  var x, y, dx, dy : int
 
   component move
-    let move() =
-        x += dx;
-        y += dy;
-        if(x <= 0 || x >= max_x || y <= 0 || y > max_y) {
-              dx -= 1;
-              dy -= 1;
-        }
-
-  component click
+    fun move() {
+        if(last x <= 0 or last x >= max_x or last y <= 0 or last y >= max_y)
+        then {
+            dx = - last dx;
+            dy = - last dy
+        };
+        x = last x + dx;
+        y = last y + dy
+    }

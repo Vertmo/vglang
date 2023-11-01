@@ -13,7 +13,7 @@ int main() {
     int tick = 0;
     while(1) {
         printf("%d\n", tick);
-        system$world$update(tick);
+        world$update(tick);
         tick++;
     }
 }
