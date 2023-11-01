@@ -33,13 +33,19 @@ type binop =
   | Gt
 [@@deriving show]
 
+type constant =
+  | CInt of int
+  | CFloat of float
+  | CBool of bool
+[@@deriving show]
+
 type exp = {
   e_desc : exp_desc;
   e_loc  : location;
 } [@@deriving show]
 
 and exp_desc =
-  | ConstInt of int
+  | Constant of constant
   | Var of ident
   | Last of ident
   | UnOp of unop * exp
@@ -102,6 +108,7 @@ type entity = {
   e_name   : ident;
   e_params : vardecl list;
   e_vars   : vardecl list;
+  e_lasts  : (ident * exp) list;
   e_comps  : component_impl list;
   e_loc    : location
 } [@@deriving show]

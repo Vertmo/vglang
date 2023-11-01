@@ -48,8 +48,10 @@ file:
 | component EOF { Component $1 }
 | system EOF { System $1 }
 
-entity: ENTITY IDENT LPAREN vardecls RPAREN VAR vardecls list(component_impl)
-    { { e_name = $2; e_params = $4; e_vars = $7; e_comps = $8;
+entity: ENTITY IDENT LPAREN vardecls RPAREN VAR vardecls list(lasteq) list(component_impl)
+    { { e_name = $2; e_params = $4; e_vars = $7;
+        e_lasts = $8;
+        e_comps = $9;
         e_loc = mk_location $startpos $endpos } }
 
 component: COMPONENT IDENT list(fundecl)
@@ -80,10 +82,13 @@ vardecls: separated_list(SEMICOLON, vardecl)
 vardecl: separated_nonempty_list(COMMA, IDENT) COLON typ
     { List.map (fun x -> { vd_name = x; vd_ty = $3; vd_loc = mk_location $startpos $endpos }) $1 }
 
+lasteq: LAST IDENT EQ exp
+    { ($2, $4) }
+
 exp:
 | IDENT { { e_desc = Var $1; e_loc = mk_location $startpos $endpos } }
 | LAST IDENT { { e_desc = Last $2; e_loc = mk_location $startpos $endpos } }
-| NUMBER { { e_desc = ConstInt $1; e_loc = mk_location $startpos $endpos } }
+| NUMBER { { e_desc = Constant (CInt $1); e_loc = mk_location $startpos $endpos } }
 | exp AND exp { { e_desc = BinOp (And, $1, $3); e_loc = mk_location $startpos $endpos }}
 | exp OR exp { { e_desc = BinOp (Or, $1, $3); e_loc = mk_location $startpos $endpos }}
 | exp EQ exp { { e_desc = BinOp (Eq, $1, $3); e_loc = mk_location $startpos $endpos }}

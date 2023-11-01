@@ -78,9 +78,15 @@ let from_binop (op: Langsyntax.binop) = match op with
   | Ge -> Ge
   | Gt -> Gt
 
+let from_constant (c: Langsyntax.constant) =
+  match c with
+  | CInt i -> CInt (Z.of_int i, IInt, None)
+  | CFloat f -> CReal (f, FFloat, None)
+  | CBool b -> CInt ((if b then Z.one else Z.zero), IUChar, None)
+
 let rec from_exp (e: Langsyntax.exp) =
   match e.e_desc with
-  | ConstInt i -> Const (CInt (Z.of_int i, IInt, None))
+  | Constant c -> Const (from_constant c)
   | Var x -> Lval (Var (Cil.makeGlobalVar x (TVoid [])), NoOffset)
   | Last x -> Lval (Var (Cil.makeGlobalVar x (TVoid [])), NoOffset)
   | BinOp (op, e1, e2) -> BinOp (from_binop op, from_exp e1, from_exp e2, TVoid [])
@@ -174,8 +180,10 @@ let from_entity (e: entity) =
                                      (List.map (fun (x, ty, _, _, _) ->
                                           Set (mk_field_ptr_access initv x ty,
                                                Lval (Var (Cil.makeGlobalVar x ty), NoOffset),
-                                               locUnknown, locUnknown)) params)));
-                      (* TODO assign last values *)
+                                               locUnknown, locUnknown)) params)@
+                                    (List.map (fun (x, e) -> Set (mk_field_ptr_access initv x (TVoid []),
+                                                                  from_exp e,
+                                                                  locUnknown, locUnknown)) e.e_lasts)));
                       mkStmt (Return (Some (Lval (Var initv, NoOffset)), locUnknown))
                      ]),
           locUnknown)

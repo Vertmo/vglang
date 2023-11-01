@@ -1,6 +1,11 @@
 entity clown(max_x, max_y : int)
   var x, y, dx, dy : int
 
+  last x = max_x / 2
+  last y = max_y / 2
+  last dx = 1
+  last dy = 1
+
   component move
     fun move() {
         if(last x <= 0 or last x >= max_x or last y <= 0 or last y >= max_y)
