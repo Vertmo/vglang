@@ -15,6 +15,7 @@
 %token AND OR
 %token GE GT LE LT
 %token PLUS MINUS STAR SLASH
+%token BOOL
 %token COMPONENT
 %token ELSE
 %token ENTITY
@@ -57,9 +58,9 @@ entity: ENTITY IDENT LPAREN vardecls RPAREN VAR vardecls list(lasteq) list(compo
 component: COMPONENT IDENT list(fundecl)
     { { c_name = $2; c_funs = $3; c_loc = mk_location $startpos $endpos } }
 
-system: SYSTEM IDENT COLON list(trigger)
+system: SYSTEM IDENT list(trigger)
     { { s_name = $2;
-        s_triggers = $4;
+        s_triggers = $3;
         s_loc = mk_location $startpos $endpos } }
 
 component_impl: COMPONENT IDENT list(func)
@@ -113,6 +114,9 @@ stmt:
 | pat EQ IDENT DOT IDENT LPAREN separated_list(COMMA, exp) RPAREN
   { { st_desc = Call ($1, $3, $5, $7);
       st_loc = mk_location $startpos $endpos } }
+| IDENT DOT IDENT LPAREN separated_list(COMMA, exp) RPAREN
+  { { st_desc = Call ([], $1, $3, $5);
+      st_loc = mk_location $startpos $endpos } }
 | IF LPAREN exp RPAREN THEN block
   { { st_desc = IfThenElse($3, $6, { blk_stmts = []; blk_loc = mk_location $startpos $endpos });
       st_loc = mk_location $startpos $endpos } }
@@ -130,9 +134,9 @@ block: LCURLY stmts RCURLY
     { { blk_stmts = $2;
         blk_loc = mk_location $startpos $endpos } }
 
-trigger: TRIGGER trigger_cond COLON block
+trigger: TRIGGER trigger_cond block
     { { tr_cond = $2;
-        tr_action = $4;
+        tr_action = $3;
         tr_loc = mk_location $startpos $endpos } }
 
 trigger_cond:
@@ -141,3 +145,4 @@ trigger_cond:
 typ:
 | UNIT { Unit }
 | INT { Int }
+| BOOL { Bool }

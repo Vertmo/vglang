@@ -12,6 +12,7 @@ type ident = string
 type typ =
   | Unit
   | Int
+  | Bool
 [@@deriving show]
 
 type unop =

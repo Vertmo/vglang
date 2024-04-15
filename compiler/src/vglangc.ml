@@ -23,13 +23,24 @@ let parse filename =
 
 open GoblintCil
 
+let output = ref None
+
+let spec = [
+  ("-o", Arg.String (fun s -> output := Some s), ": set output file for c code")
+]
+
 let files = ref []
 
 let add_file filename =
   files := (parse filename)::!files
 
 let _ =
-  Arg.parse [] add_file "usage: ./vglanc <files>";
+  Arg.parse spec add_file ("usage: "^Sys.argv.(0)^" [-o outname] <files>");
   let decls = List.concat_map Generator.from_file (List.rev !files) in
   let cfile = Generator.mk_file "game" decls in
-  Cil.dumpFile Cil.defaultCilPrinter stdout "meh" cfile
+  match !output with
+  | None -> Cil.dumpFile Cil.defaultCilPrinter stdout "meh" cfile
+  | Some filename ->
+    let chan = open_out filename in
+    Cil.dumpFile Cil.defaultCilPrinter chan "" cfile;
+    close_out chan

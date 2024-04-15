@@ -51,6 +51,7 @@ let enull = Const (CInt (Z.zero, IUInt, None))
 
 let from_typ = function
   | Int -> TInt (IInt, [])
+  | Bool -> TInt (IUChar, [])
   | Unit -> TVoid []
 
 let from_vardecls vds =

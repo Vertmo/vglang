@@ -45,6 +45,7 @@ rule token = parse
   | ">"              { GT }
   | "<="             { LE }
   | "<"              { LT }
+  | "bool"           { BOOL }
   | "component"      { COMPONENT }
   | "else"           { ELSE }
   | "entity"         { ENTITY }
