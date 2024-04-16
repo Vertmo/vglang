@@ -5,58 +5,64 @@
 open Utils
 open Entity
 open Scene
+open Clang
 open Generator
-
-open GoblintCil
 
 (* Helpers *)
 
-let ty_u8 = Cil.(TNamed ({ tname = "u8"; ttype = TVoid []; treferenced = false }, []))
-let ty_u16 = Cil.(TNamed ({ tname = "u16"; ttype = TVoid []; treferenced = false }, []))
+let ty_u8 = Tident "u8"
+let ty_u16 = Tident "u16"
+let ty_oamstate = Tident "OamState"
 
 (** Generate a call to oamAllocateGfx for entity [ent], and place result in [v] *)
-let mk_oam_allocate_gfx x oam i (ent: entity) =
-  mk_call (Some (mk_index_access x i))
-    "oamAllocateGfx"
-    [mk_var oam;
-     mk_var (Printf.sprintf "SpriteSize_%dx%d" ent.e_gfx.gfx_tile_width ent.e_gfx.gfx_tile_height);
-     mk_var "SpriteColorFormat_256Color"]
+let mk_oam_allocate_gfx x i oam (ent: entity) =
+  Call (Some (Index (x, i)), "oamAllocateGfx",
+        [Ident oam;
+         Ident (Printf.sprintf "SpriteSize_%dx%d" ent.e_gfx.gfx_tile_width ent.e_gfx.gfx_tile_height);
+         Ident "SpriteColorFormat_256Color"])
+
+(** Generate a call to dmaCopy *)
+let mk_dma_cpy src dest len =
+  Call (None, "dmaCopy", [src; dest; len])
+
+let mk_dma_cpy_palette ent =
+  mk_dma_cpy
+    (Ident (ent.e_name^"Pal"))
+    (Index (Index (Ident "VRAM_G_EXT_PALETTE", Const (Int 0)), Ident "paletteId"))
+    (Ident (ent.e_name^"PalLen"))
 
 (* Translating an entity *)
 
 let entity_init_graphics_params =
-  [("oam", TPtr (TVoid [] (* TODO *), []), []);
-   ("entries", TArray (ty_u8, None, []), []);
-   ("gfx", TArray (ty_u16, None, []), [])]
+  [("oam", Tptr ty_oamstate);
+   ("gfx", Tptr (Tptr ty_u16));
+   ("entries", Tptr ty_u8);
+   ("paletteId", ty_u8)]
 
 (** Initialize graphics for an entity [ent] *)
 let entity_init_graphics (ent: entity) =
   let nbTiles = nb_tiles ent.e_gfx in
   (* TODO with a loop? *)
-  let allocates = List.init nbTiles (fun i -> mk_oam_allocate_gfx "oam" "entries" i ent) in
-  Cil.(mk_function
-         (Printf.sprintf "%s_init_gfx" ent.e_name)
-         entity_init_graphics_params
-         (TVoid [])
-         (mkBlock [mkStmt (Instr allocates)]))
+  let allocates = List.init nbTiles (fun i -> mk_oam_allocate_gfx "gfx" i "oam" ent) in
+  let cpyPalette = mk_dma_cpy_palette ent in
+  { fun_name = (Printf.sprintf "%s_init_gfx" ent.e_name);
+    fun_args = entity_init_graphics_params;
+    fun_ret = Tvoid;
+    fun_body = Some (allocates@[cpyPalette]) }
 
 (** Header for an entity [ent] *)
 let entity_header (ent: entity) =
-  let init_gfx = mk_fun_decl (Printf.sprintf "%s_init_gfx" ent.e_name) entity_init_graphics_params (TVoid []) in
-  Cil.({ fileName = ent.e_name ^ ".h";
-         globals = [init_gfx];
-         globinit = None;
-         globinitcalled = false; })
+  let init_gfx = mk_fun_decl (Printf.sprintf "%s_init_gfx" ent.e_name) entity_init_graphics_params Tvoid in
+  { file_name = ent.e_name ^ ".h";
+    globals = [init_gfx] }
 
 (** Source for an entity [ent] *)
 let entity_source (ent: entity) =
   let includes = [mk_include "nds.h";
                   mk_include (ent.e_name ^ ".h")] in
   let funs = [entity_init_graphics ent] in
-  Cil.({ fileName = ent.e_name ^ ".c";
-         globals = includes@(List.map (fun fd -> GFun (fd, locUnknown)) funs);
-         globinit = None;
-         globinitcalled = false; })
+  { file_name = ent.e_name ^ ".c";
+    globals = includes@(List.map (fun fd -> Fun fd) funs) }
 
 let entity ent = [entity_header ent; entity_source ent]
 
@@ -136,14 +142,10 @@ let scene_header entities (scn : scene) =
   let* () = collect_scene_gfx entities scn in
   fun st ->
     let mk_defines gen =
-      List.map (fun (s, i) -> mk_define s i) (idmap_to_list gen.gen_ids)
+      List.map (fun (s, i) -> mk_define s (Int i)) (idmap_to_list gen.gen_ids)
     in
-    Cil.({
-        fileName = scn.scn_name ^ ".h";
-        globals = (mk_defines st.gfx_entries)@(mk_defines st.palettes);
-        globinit = None;
-        globinitcalled = false;
-      }),
+    { file_name = scn.scn_name ^ ".h";
+      globals = (mk_defines st.gfx_entries)@(mk_defines st.palettes) },
     st
 
 (** Initialize graphics for a scene [scn] *)
@@ -153,12 +155,8 @@ let scene_init_graphics _scn = ret () (* TODO *)
 let scene_source scn =
   let includes = [mk_include (scn.scn_name ^ ".h")] in
   ret
-    Cil.({
-      fileName = scn.scn_name ^ ".c";
-      globals = includes;
-      globinit = None;
-      globinitcalled = false;
-    })
+    { file_name = scn.scn_name ^ ".c";
+      globals = includes }
 
 (** Generate all code for a scene [scn] *)
 let scene entities (scn : scene) =

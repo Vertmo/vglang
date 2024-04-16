@@ -24,7 +24,7 @@ let parse filename =
     and l_end   = Lexing.lexeme_end_p lexbuf in
     syntax_error { l_start; l_end }
 
-open GoblintCil
+open Clang
 
 let output = ref None
 
@@ -61,8 +61,8 @@ let _ =
   Arg.parse spec add_file ("usage: "^Sys.argv.(0)^" [-o outname] <files>");
   let files = compile_for_ds game in
   List.iter (fun f ->
-      let oc = open_out f.fileName in
-      Cil.dumpFile Cil.defaultCilPrinter oc "meh" f;
+      let oc = open_out f.file_name in
+      output_string oc (string_of_file f);
       close_out oc) files
 (* let decls = List.concat_map Generator.from_file (List.rev !files) in *)
   (* let cfile = Generator.mk_file "game" [] in *)
