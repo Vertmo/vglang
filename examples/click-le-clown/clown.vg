@@ -1,4 +1,12 @@
 entity clown(max_x, max_y : int)
+graphics {
+  tileset = "clown.png"
+  width = 2 * 16
+  height = 2 * 16
+  initial offset = 0
+}
+
+behavior {
   var x, y, dx, dy : int
 
   last x = max_x / 2
@@ -8,11 +16,12 @@ entity clown(max_x, max_y : int)
 
   component move
     fun move() {
-        if(last x <= 0 or last x >= max_x or last y <= 0 or last y >= max_y)
-        then {
-            dx = - last dx;
-            dy = - last dy
-        };
-        x = last x + dx;
-        y = last y + dy
+      if(last x <= 0 or last x >= max_x or last y <= 0 or last y >= max_y)
+      then {
+        dx = - last dx;
+        dy = - last dy
+      };
+      x = last x + dx;
+      y = last y + dy
     }
+}

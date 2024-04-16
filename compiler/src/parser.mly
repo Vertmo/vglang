@@ -1,6 +1,11 @@
 %{
     open Location
-    open Langsyntax
+    open Proglang
+    open Entity
+    open Component
+    open System
+    open Scene
+    open File
 
     let mk_location l_start l_end = { l_start; l_end }
 %}
@@ -15,24 +20,36 @@
 %token AND OR
 %token GE GT LE LT
 %token PLUS MINUS STAR SLASH
+%token BEHAVIOR
 %token BOOL
 %token COMPONENT
 %token ELSE
 %token ENTITY
+%token ENTITIES
 %token FOREACH
 %token FUN
+%token GRAPHICS
+%token HEIGHT
 %token <string> IDENT
+%token <string> BIGIDENT
 %token IF
+%token INITIAL
 %token INT
 %token LAST
 %token <int> NUMBER
+%token OFFSET
 %token PERIODIC
+%token SCENE
 %token SEMICOLON
+%token SPAWN
+%token <string> STRING
 %token SYSTEM
 %token THEN
+%token TILESET
 %token TRIGGER
 %token UNIT
 %token VAR
+%token WIDTH
 
 %left AND OR
 %left EQ GE GT LE LT
@@ -40,7 +57,11 @@
 %left STAR SLASH
 
 %start file
-%type <Langsyntax.file> file
+%type<File.file> file
+/* %type <Entity.entity> entity */
+/* %type <Component.component> component */
+/* %type <System.system> system */
+/* %type <Scene.scene> scene */
 
 %%
 
@@ -48,23 +69,75 @@ file:
 | entity EOF { Entity $1 }
 | component EOF { Component $1 }
 | system EOF { System $1 }
+| scene EOF { Scene $1 }
 
-entity: ENTITY IDENT LPAREN vardecls RPAREN VAR vardecls list(lasteq) list(component_impl)
-    { { e_name = $2; e_params = $4; e_vars = $7;
-        e_lasts = $8;
-        e_comps = $9;
+(* Entity *)
+
+entity: ENTITY IDENT LPAREN vardecls RPAREN graphics behavior
+    { { e_name = $2;
+        e_params = $4;
+        e_gfx = $6;
+        e_behav = $7;
         e_loc = mk_location $startpos $endpos } }
+
+graphics: GRAPHICS LCURLY tileset width height init_offset RCURLY
+    { { gfx_tileset = $3; (* TODO *)
+        gfx_tile_width = snd $4;
+        gfx_tile_height = snd $5;
+        gfx_width = fst $4;
+        gfx_height = fst $5;
+        gfx_init_offset = $6; } }
+
+tileset: TILESET EQ STRING { $3 }
+width: WIDTH EQ NUMBER STAR NUMBER { ($3, $5) }
+height: HEIGHT EQ NUMBER STAR NUMBER {($3, $5)}
+init_offset:
+| (* Empty *) { 0 }
+| INITIAL OFFSET EQ NUMBER { $4 }
+
+behavior: BEHAVIOR LCURLY VAR vardecls list(lasteq) list(component_impl) RCURLY
+    { { e_vars = $4;
+        e_lasts = $5;
+        e_comps = $6; } }
+
+component_impl: COMPONENT IDENT list(func)
+    { { ci_name = $2; ci_funs = $3; ci_loc = mk_location $startpos $endpos } }
+
+(* Component *)
 
 component: COMPONENT IDENT list(fundecl)
     { { c_name = $2; c_funs = $3; c_loc = mk_location $startpos $endpos } }
+
+(* System *)
 
 system: SYSTEM IDENT list(trigger)
     { { s_name = $2;
         s_triggers = $3;
         s_loc = mk_location $startpos $endpos } }
 
-component_impl: COMPONENT IDENT list(func)
-    { { ci_name = $2; ci_funs = $3; ci_loc = mk_location $startpos $endpos } }
+(* Scene *)
+
+scene: SCENE IDENT init_entities spawn_entities
+    { { scn_name = $2;
+        scn_init_entities = $3;
+        scn_spawn_entities = $4 } }
+
+init_entities:
+| (* Empty *) { [] }
+| INITIAL ENTITIES LCURLY separated_list(SEMICOLON, init_entity) RCURLY
+  { $4 }
+
+init_entity:
+| IDENT { ($1, []) }
+| IDENT LPAREN separated_list(COMMA, constant) RPAREN
+  { ($1, $3) }
+
+spawn_entities:
+| (* Empty *) { [] }
+| SPAWN ENTITIES LCURLY separated_list(SEMICOLON, IDENT) RCURLY
+  { $4 }
+
+(* Programming language *)
 
 func:
 | FUN IDENT LPAREN vardecls RPAREN block
@@ -85,6 +158,9 @@ vardecl: separated_nonempty_list(COMMA, IDENT) COLON typ
 
 lasteq: LAST IDENT EQ exp
     { ($2, $4) }
+
+constant:
+| BIGIDENT { CIdent $1 }
 
 exp:
 | IDENT { { e_desc = Var $1; e_loc = mk_location $startpos $endpos } }

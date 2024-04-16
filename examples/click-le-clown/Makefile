@@ -1,11 +1,15 @@
 include ../../Makefile.config
 include ../../Makefile.include
 
-game.exe: main.c game.c
-	gcc -o $@ $<
+# COMPONENTS = move.vg
+ENTITIES = clown.vg
+SYSTEMS =
+SCENES = world.vg
 
-game.c: move.vg clown.vg world.vg
-	$(VGLANGC) $^ > game.c
+vglang: $(COMPONENTS) $(ENTITIES) $(SYSTEMS) $(SCENES)
+	$(VGLANGC) $^
 
 clean:
 	rm -f game.*
+
+.PHONY: vglang clean

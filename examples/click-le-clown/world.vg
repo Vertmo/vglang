@@ -1,6 +1,9 @@
-system world:
-    trigger periodic 10: {
-        foreach m : move {
-            () = m.move()
-        }
-    }
+scene world
+
+initial entities {
+    clown(SCREEN_WIDTH, SCREEN_HEIGHT)
+}
+
+spawn entities {
+    clown
+}

@@ -1,13 +1,7 @@
-(** Syntax of the source language *)
-(** There are three types of compilation units: *)
-(** - components *)
-(** - entities *)
-(** - systems *)
+(* Syntax of the source language used in entities, components and systems *)
 
 open Location
-
-type ident = string
-[@@deriving show]
+open Utils
 
 type typ =
   | Unit
@@ -38,6 +32,7 @@ type constant =
   | CInt of int
   | CFloat of float
   | CBool of bool
+  | CIdent of ident (* Defined constant *)
 [@@deriving show]
 
 type exp = {
@@ -98,37 +93,3 @@ type func = {
   f_body : block;
   f_loc  : location
 } [@@deriving show]
-
-type component_impl = {
-  ci_name : ident;
-  ci_funs : func list;
-  ci_loc  : location
-} [@@deriving show]
-
-type entity = {
-  e_name   : ident;
-  e_params : vardecl list;
-  e_vars   : vardecl list;
-  e_lasts  : (ident * exp) list;
-  e_comps  : component_impl list;
-  e_loc    : location
-} [@@deriving show]
-
-type component = {
-  c_name : ident;
-  c_funs : fundecl list;
-  c_loc  : location
-} [@@deriving show]
-
-type system = {
-  s_name : ident;
-  s_triggers : trigger list;
-  s_loc  : location
-} [@@deriving show]
-
-(** Compilation unit *)
-type file =
-  | Entity of entity
-  | Component of component
-  | System of system
-[@@deriving show]
