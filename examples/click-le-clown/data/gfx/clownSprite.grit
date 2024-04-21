@@ -1,0 +1,9 @@
+-m! # Exclude map from output (default).
+-gB8 # Bit depth of the output
+-gT 00FF00 # Set the transparency color to White
+
+#metatile
+-Mh4 # Metatile height
+-Mw4 # Metatile width
+
+-mp4

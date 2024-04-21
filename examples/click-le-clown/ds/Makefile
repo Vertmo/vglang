@@ -26,10 +26,10 @@ include $(DEVKITARM)/ds_rules
 #---------------------------------------------------------------------------------
 TARGET   := click-le-clown
 BUILD    := build
-SOURCES  := source source/generated
-INCLUDES := include
+SOURCES  := source source/runtime source/generated
+INCLUDES := include include/generated include/runtime
 DATA     := data
-GRAPHICS := data/graphics
+GRAPHICS := data/gfx
 AUDIO    :=
 ICON     :=
 

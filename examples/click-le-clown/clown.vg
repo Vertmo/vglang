@@ -1,8 +1,8 @@
 entity clown(max_x, max_y : int)
 graphics {
-  tileset = "clown.png"
-  width = 2 * 16
-  height = 2 * 16
+  tileset = "clownSprite"
+  width = 2 * 32
+  height = 2 * 32
   initial offset = 0
 }
 

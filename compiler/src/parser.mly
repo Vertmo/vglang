@@ -89,8 +89,12 @@ graphics: GRAPHICS LCURLY tileset width height init_offset RCURLY
         gfx_init_offset = $6; } }
 
 tileset: TILESET EQ STRING { $3 }
-width: WIDTH EQ NUMBER STAR NUMBER { ($3, $5) }
-height: HEIGHT EQ NUMBER STAR NUMBER {($3, $5)}
+width:
+| WIDTH EQ NUMBER STAR NUMBER { ($3, $5) }
+| WIDTH EQ NUMBER { (1, $3) }
+height:
+| HEIGHT EQ NUMBER STAR NUMBER {($3, $5)}
+| HEIGHT EQ NUMBER { (1, $3) }
 init_offset:
 | (* Empty *) { 0 }
 | INITIAL OFFSET EQ NUMBER { $4 }

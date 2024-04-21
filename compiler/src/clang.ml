@@ -41,11 +41,13 @@ let string_of_structdef (stdef : structdef) =
 
 type lhs =
   | Ident of ident
+  | DeclIdent of ty * ident
   | PField of ident * ident
   | Index of ident * int
 
 let string_of_lhs = function
   | Ident id -> id
+  | DeclIdent (ty, id) -> Printf.sprintf "%s %s" (string_of_ty ty) id
   | PField (st, id) -> Printf.sprintf "%s->%s" st id
   | Index (id, i) -> Printf.sprintf "%s[%d]" id i
 
@@ -143,7 +145,7 @@ type fundef = {
 }
 
 let string_of_fundef (f : fundef) =
-  Printf.sprintf "%s %s(%s)%s\n"
+  Printf.sprintf "%s %s(%s)%s"
     (string_of_ty f.fun_ret) f.fun_name
     (String.concat ", "
        (List.map (fun (id, ty) -> (string_of_ty ty)^" "^id) f.fun_args))
@@ -156,6 +158,7 @@ let string_of_fundef (f : fundef) =
 type global =
   | Enum of ident * ident list
   | Struct of structdef
+  | Var of ty * ident * const option
   | Fun of fundef
   | Include of ident
   | Define of string * const
@@ -165,8 +168,14 @@ let string_of_global = function
     Printf.sprintf "enum %s {%s};"
       id (String.concat "," constrs)
   | Struct std -> string_of_structdef std
+  | Var (ty, name, Some c) ->
+    Printf.sprintf "%s %s = %s;"
+      (string_of_ty ty) name (string_of_const c)
+  | Var (ty, name, None) ->
+    Printf.sprintf "%s %s;"
+      (string_of_ty ty) name
   | Fun fd -> string_of_fundef fd
-  | Include s -> Printf.sprintf "#include %S\n" s
+  | Include s -> Printf.sprintf "#include %S" s
   | Define (s, c) -> Printf.sprintf "#define %s %s" s (string_of_const c)
 
 type file = {
